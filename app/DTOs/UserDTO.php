@@ -23,7 +23,7 @@ readonly class UserDTO
     public static function fromArray(array $data): self
     {
         return new self(
-            id: $data['id'] ?? null,
+            id: isset($data['id']) ? (int) $data['id'] : null,
             firstName: $data['first_name'] ?? $data['firstName'] ?? null,
             lastName: $data['last_name'] ?? $data['lastName'] ?? null,
             dateOfBirth: $data['date_of_birth'] ?? $data['dateOfBirth'] ?? null,

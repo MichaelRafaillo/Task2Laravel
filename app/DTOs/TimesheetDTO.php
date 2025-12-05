@@ -22,9 +22,9 @@ readonly class TimesheetDTO
     public static function fromArray(array $data): self
     {
         return new self(
-            id: $data['id'] ?? null,
-            userId: $data['user_id'] ?? $data['userId'] ?? null,
-            projectId: $data['project_id'] ?? $data['projectId'] ?? null,
+            id: isset($data['id']) ? (int) $data['id'] : null,
+            userId: isset($data['user_id']) || isset($data['userId']) ? (int) ($data['user_id'] ?? $data['userId']) : null,
+            projectId: isset($data['project_id']) || isset($data['projectId']) ? (int) ($data['project_id'] ?? $data['projectId']) : null,
             taskName: $data['task_name'] ?? $data['taskName'] ?? null,
             date: $data['date'] ?? null,
             hours: isset($data['hours']) ? (float) $data['hours'] : null,

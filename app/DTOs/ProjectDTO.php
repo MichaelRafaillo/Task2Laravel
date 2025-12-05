@@ -22,7 +22,7 @@ readonly class ProjectDTO
     public static function fromArray(array $data): self
     {
         return new self(
-            id: $data['id'] ?? null,
+            id: isset($data['id']) ? (int) $data['id'] : null,
             name: $data['name'] ?? null,
             department: $data['department'] ?? null,
             startDate: $data['start_date'] ?? $data['startDate'] ?? null,
