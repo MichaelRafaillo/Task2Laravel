@@ -6,6 +6,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -41,7 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($isApiRequest($request)) {
                 return response()->json([
                     'message' => $e->getMessage() ?: 'This action is unauthorized.',
-                ], 403, [], JSON_UNESCAPED_SLASHES);
+                ], Response::HTTP_FORBIDDEN, [], JSON_UNESCAPED_SLASHES);
             }
         });
 
@@ -50,7 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($isApiRequest($request)) {
                 return response()->json([
                     'message' => $e->getMessage() ?: 'This action is unauthorized.',
-                ], 403, [], JSON_UNESCAPED_SLASHES);
+                ], Response::HTTP_FORBIDDEN, [], JSON_UNESCAPED_SLASHES);
             }
         });
 
@@ -59,7 +60,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($isApiRequest($request)) {
                 return response()->json([
                     'message' => 'Unauthenticated.',
-                ], 401);
+                ], Response::HTTP_UNAUTHORIZED);
             }
         });
 
@@ -69,7 +70,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->json([
                     'message' => 'The given data was invalid.',
                     'errors' => $e->errors(),
-                ], 422);
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
             }
         });
 
@@ -80,11 +81,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 if (str_contains($e->getMessage(), 'login')) {
                     return response()->json([
                         'message' => 'Unauthenticated.',
-                    ], 401);
+                    ], Response::HTTP_UNAUTHORIZED);
                 }
                 return response()->json([
                     'message' => 'Route not found.',
-                ], 404);
+                ], Response::HTTP_NOT_FOUND);
             }
         });
 
@@ -93,7 +94,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($isApiRequest($request)) {
                 return response()->json([
                     'message' => $e->getMessage() ?: 'An error occurred. Please try again.',
-                ], 500, [], JSON_UNESCAPED_SLASHES);
+                ], Response::HTTP_INTERNAL_SERVER_ERROR, [], JSON_UNESCAPED_SLASHES);
             }
         });
 
@@ -102,7 +103,7 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($isApiRequest($request)) {
                 return response()->json([
                     'message' => 'A database error occurred. Please try again.',
-                ], 500, [], JSON_UNESCAPED_SLASHES);
+                ], Response::HTTP_INTERNAL_SERVER_ERROR, [], JSON_UNESCAPED_SLASHES);
             }
         });
     })->create();
