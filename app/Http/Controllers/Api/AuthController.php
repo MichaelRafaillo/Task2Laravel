@@ -27,8 +27,16 @@ class AuthController extends Controller
      */
     public function register(StoreUserRequest $request): JsonResponse
     {
+        // Registration is public, so create user directly without policy checks
         $dto = UserDTO::fromArray($request->validated());
-        $user = $this->userService->create($dto);
+        $data = $dto->toArray();
+        
+        // Hash password if provided
+        if (isset($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
+        }
+
+        $user = \App\Models\User::create($data);
         $token = $user->createToken('auth-token')->plainTextToken;
 
         return response()->json([

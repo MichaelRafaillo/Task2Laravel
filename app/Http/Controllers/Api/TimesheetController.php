@@ -26,7 +26,7 @@ class TimesheetController extends Controller
     public function store(StoreTimesheetRequest $request): JsonResponse
     {
         $dto = TimesheetDTO::fromArray($request->validated());
-        $timesheet = $this->timesheetService->create($dto);
+        $timesheet = $this->timesheetService->create($request->user(), $dto);
 
         return response()->json([
             'message' => 'Timesheet created successfully',
@@ -37,9 +37,9 @@ class TimesheetController extends Controller
     /**
      * Get a specific timesheet by ID.
      */
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
-        $timesheet = $this->timesheetService->findById($id);
+        $timesheet = $this->timesheetService->findById($request->user(), $id);
 
         if (!$timesheet) {
             return response()->json([
@@ -58,7 +58,7 @@ class TimesheetController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filters = $request->only(['user_id', 'project_id', 'task_name', 'date', 'hours']);
-        $timesheets = $this->timesheetService->findAll($filters);
+        $timesheets = $this->timesheetService->findAll($request->user(), $filters);
 
         return response()->json([
             'data' => TimesheetResource::collection($timesheets),
@@ -72,7 +72,7 @@ class TimesheetController extends Controller
     {
         $id = (int) $request->input('id');
         $dto = TimesheetDTO::fromArray($request->validated());
-        $timesheet = $this->timesheetService->update($id, $dto);
+        $timesheet = $this->timesheetService->update($request->user(), $id, $dto);
 
         if (!$timesheet) {
             return response()->json([
@@ -95,7 +95,7 @@ class TimesheetController extends Controller
             'id' => ['required', 'integer', 'exists:timesheets,id'],
         ]);
 
-        $deleted = $this->timesheetService->delete((int) $request->input('id'));
+        $deleted = $this->timesheetService->delete($request->user(), (int) $request->input('id'));
 
         if (!$deleted) {
             return response()->json([

@@ -26,7 +26,7 @@ class UserController extends Controller
     public function store(StoreUserRequest $request): JsonResponse
     {
         $dto = UserDTO::fromArray($request->validated());
-        $user = $this->userService->create($dto);
+        $user = $this->userService->create($request->user(), $dto);
 
         return response()->json([
             'message' => 'User created successfully',
@@ -37,9 +37,9 @@ class UserController extends Controller
     /**
      * Get a specific user by ID.
      */
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
-        $user = $this->userService->findById($id);
+        $user = $this->userService->findById($request->user(), $id);
 
         if (!$user) {
             return response()->json([
@@ -58,7 +58,7 @@ class UserController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filters = $request->only(['first_name', 'last_name', 'gender', 'date_of_birth', 'email']);
-        $users = $this->userService->findAll($filters);
+        $users = $this->userService->findAll($request->user(), $filters);
 
         return response()->json([
             'data' => UserResource::collection($users),
@@ -72,7 +72,7 @@ class UserController extends Controller
     {
         $id = (int) $request->input('id');
         $dto = UserDTO::fromArray($request->validated());
-        $user = $this->userService->update($id, $dto);
+        $user = $this->userService->update($request->user(), $id, $dto);
 
         if (!$user) {
             return response()->json([
@@ -95,7 +95,7 @@ class UserController extends Controller
             'id' => ['required', 'integer', 'exists:users,id'],
         ]);
 
-        $deleted = $this->userService->delete((int) $request->input('id'));
+        $deleted = $this->userService->delete($request->user(), (int) $request->input('id'));
 
         if (!$deleted) {
             return response()->json([
