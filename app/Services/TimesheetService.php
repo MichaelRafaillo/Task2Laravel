@@ -6,24 +6,42 @@ namespace App\Services;
 
 use App\DTOs\TimesheetDTO;
 use App\Models\Timesheet;
+use App\Models\User;
+use App\Policies\TimesheetPolicy;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 
 class TimesheetService
 {
+    public function __construct(
+        private readonly TimesheetPolicy $policy
+    ) {
+    }
+
     /**
      * Create a new timesheet.
      */
-    public function create(TimesheetDTO $dto): Timesheet
+    public function create(User $authenticatedUser, TimesheetDTO $dto): Timesheet
     {
+        if (!$this->policy->create($authenticatedUser)) {
+            throw new AuthorizationException('This action is unauthorized.');
+        }
+
         return Timesheet::create($dto->toArray());
     }
 
     /**
      * Find a timesheet by ID.
      */
-    public function findById(int $id): ?Timesheet
+    public function findById(User $authenticatedUser, int $id): ?Timesheet
     {
-        return Timesheet::with(['user', 'project'])->find($id);
+        $timesheet = Timesheet::with(['user', 'project'])->find($id);
+
+        if ($timesheet && !$this->policy->view($authenticatedUser, $timesheet)) {
+            throw new AuthorizationException('This action is unauthorized.');
+        }
+
+        return $timesheet;
     }
 
     /**
@@ -31,8 +49,12 @@ class TimesheetService
      *
      * @param array<string, mixed> $filters
      */
-    public function findAll(array $filters = []): Collection
+    public function findAll(User $authenticatedUser, array $filters = []): Collection
     {
+        if (!$this->policy->viewAny($authenticatedUser)) {
+            throw new AuthorizationException('This action is unauthorized.');
+        }
+
         $query = Timesheet::with(['user', 'project']);
 
         // Apply filters with AND operation
@@ -62,12 +84,16 @@ class TimesheetService
     /**
      * Update a timesheet.
      */
-    public function update(int $id, TimesheetDTO $dto): ?Timesheet
+    public function update(User $authenticatedUser, int $id, TimesheetDTO $dto): ?Timesheet
     {
         $timesheet = Timesheet::find($id);
 
         if (!$timesheet) {
             return null;
+        }
+
+        if (!$this->policy->update($authenticatedUser, $timesheet)) {
+            throw new AuthorizationException('This action is unauthorized.');
         }
 
         $timesheet->update($dto->toArray());
@@ -78,7 +104,7 @@ class TimesheetService
     /**
      * Delete a timesheet.
      */
-    public function delete(int $id): bool
+    public function delete(User $authenticatedUser, int $id): bool
     {
         $timesheet = Timesheet::find($id);
 
@@ -86,7 +112,10 @@ class TimesheetService
             return false;
         }
 
+        if (!$this->policy->delete($authenticatedUser, $timesheet)) {
+            throw new AuthorizationException('This action is unauthorized.');
+        }
+
         return $timesheet->delete();
     }
 }
-

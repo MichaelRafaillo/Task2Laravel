@@ -6,16 +6,27 @@ namespace App\Services;
 
 use App\DTOs\UserDTO;
 use App\Models\User;
+use App\Policies\UserPolicy;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Hash;
 
 class UserService
 {
+    public function __construct(
+        private readonly UserPolicy $policy
+    ) {
+    }
+
     /**
      * Create a new user.
      */
-    public function create(UserDTO $dto): User
+    public function create(User $authenticatedUser, UserDTO $dto): User
     {
+        if (!$this->policy->create($authenticatedUser)) {
+            throw new AuthorizationException('This action is unauthorized.');
+        }
+
         $data = $dto->toArray();
         
         // Hash password if provided
@@ -29,9 +40,15 @@ class UserService
     /**
      * Find a user by ID.
      */
-    public function findById(int $id): ?User
+    public function findById(User $authenticatedUser, int $id): ?User
     {
-        return User::find($id);
+        $user = User::find($id);
+
+        if ($user && !$this->policy->view($authenticatedUser, $user)) {
+            throw new AuthorizationException('This action is unauthorized.');
+        }
+
+        return $user;
     }
 
     /**
@@ -39,8 +56,12 @@ class UserService
      *
      * @param array<string, mixed> $filters
      */
-    public function findAll(array $filters = []): Collection
+    public function findAll(User $authenticatedUser, array $filters = []): Collection
     {
+        if (!$this->policy->viewAny($authenticatedUser)) {
+            throw new AuthorizationException('This action is unauthorized.');
+        }
+
         $query = User::query();
 
         // Apply filters with AND operation
@@ -70,12 +91,16 @@ class UserService
     /**
      * Update a user.
      */
-    public function update(int $id, UserDTO $dto): ?User
+    public function update(User $authenticatedUser, int $id, UserDTO $dto): ?User
     {
-        $user = $this->findById($id);
+        $user = User::find($id);
 
         if (!$user) {
             return null;
+        }
+
+        if (!$this->policy->update($authenticatedUser, $user)) {
+            throw new AuthorizationException('This action is unauthorized.');
         }
 
         $data = $dto->toArray();
@@ -93,12 +118,16 @@ class UserService
     /**
      * Delete a user and related timesheets.
      */
-    public function delete(int $id): bool
+    public function delete(User $authenticatedUser, int $id): bool
     {
-        $user = $this->findById($id);
+        $user = User::find($id);
 
         if (!$user) {
             return false;
+        }
+
+        if (!$this->policy->delete($authenticatedUser, $user)) {
+            throw new AuthorizationException('This action is unauthorized.');
         }
 
         // Delete related timesheets (cascade delete handles this, but we can be explicit)
@@ -107,4 +136,3 @@ class UserService
         return $user->delete();
     }
 }
-

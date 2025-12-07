@@ -6,24 +6,42 @@ namespace App\Services;
 
 use App\DTOs\ProjectDTO;
 use App\Models\Project;
+use App\Models\User;
+use App\Policies\ProjectPolicy;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
 
 class ProjectService
 {
+    public function __construct(
+        private readonly ProjectPolicy $policy
+    ) {
+    }
+
     /**
      * Create a new project.
      */
-    public function create(ProjectDTO $dto): Project
+    public function create(User $authenticatedUser, ProjectDTO $dto): Project
     {
+        if (!$this->policy->create($authenticatedUser)) {
+            throw new AuthorizationException('This action is unauthorized.');
+        }
+
         return Project::create($dto->toArray());
     }
 
     /**
      * Find a project by ID.
      */
-    public function findById(int $id): ?Project
+    public function findById(User $authenticatedUser, int $id): ?Project
     {
-        return Project::find($id);
+        $project = Project::find($id);
+
+        if ($project && !$this->policy->view($authenticatedUser, $project)) {
+            throw new AuthorizationException('This action is unauthorized.');
+        }
+
+        return $project;
     }
 
     /**
@@ -31,8 +49,12 @@ class ProjectService
      *
      * @param array<string, mixed> $filters
      */
-    public function findAll(array $filters = []): Collection
+    public function findAll(User $authenticatedUser, array $filters = []): Collection
     {
+        if (!$this->policy->viewAny($authenticatedUser)) {
+            throw new AuthorizationException('This action is unauthorized.');
+        }
+
         $query = Project::query();
 
         // Apply filters with AND operation
@@ -62,12 +84,16 @@ class ProjectService
     /**
      * Update a project.
      */
-    public function update(int $id, ProjectDTO $dto): ?Project
+    public function update(User $authenticatedUser, int $id, ProjectDTO $dto): ?Project
     {
-        $project = $this->findById($id);
+        $project = Project::find($id);
 
         if (!$project) {
             return null;
+        }
+
+        if (!$this->policy->update($authenticatedUser, $project)) {
+            throw new AuthorizationException('This action is unauthorized.');
         }
 
         $project->update($dto->toArray());
@@ -78,12 +104,16 @@ class ProjectService
     /**
      * Delete a project and related timesheets.
      */
-    public function delete(int $id): bool
+    public function delete(User $authenticatedUser, int $id): bool
     {
-        $project = $this->findById($id);
+        $project = Project::find($id);
 
         if (!$project) {
             return false;
+        }
+
+        if (!$this->policy->delete($authenticatedUser, $project)) {
+            throw new AuthorizationException('This action is unauthorized.');
         }
 
         // Delete related timesheets (cascade delete handles this, but we can be explicit)
@@ -92,4 +122,3 @@ class ProjectService
         return $project->delete();
     }
 }
-
