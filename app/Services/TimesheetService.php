@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Policies\TimesheetPolicy;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\QueryException;
 
 class TimesheetService
 {
@@ -23,11 +24,21 @@ class TimesheetService
      */
     public function create(User $authenticatedUser, TimesheetDTO $dto): Timesheet
     {
-        if (!$this->policy->create($authenticatedUser)) {
-            throw new AuthorizationException('This action is unauthorized.');
-        }
+        try {
+            if (!$this->policy->create($authenticatedUser)) {
+                throw new AuthorizationException('This action is unauthorized.');
+            }
 
-        return Timesheet::create($dto->toArray());
+            return Timesheet::create($dto->toArray());
+        } catch (AuthorizationException $e) {
+            throw $e;
+        } catch (QueryException $e) {
+            report($e);
+            throw new \RuntimeException('Failed to create timesheet. Please try again.', 0, $e);
+        } catch (\Exception $e) {
+            report($e);
+            throw new \RuntimeException('An unexpected error occurred. Please try again.', 0, $e);
+        }
     }
 
     /**
@@ -35,13 +46,23 @@ class TimesheetService
      */
     public function findById(User $authenticatedUser, int $id): ?Timesheet
     {
-        $timesheet = Timesheet::with(['user', 'project'])->find($id);
+        try {
+            $timesheet = Timesheet::with(['user', 'project'])->find($id);
 
-        if ($timesheet && !$this->policy->view($authenticatedUser, $timesheet)) {
-            throw new AuthorizationException('This action is unauthorized.');
+            if ($timesheet && !$this->policy->view($authenticatedUser, $timesheet)) {
+                throw new AuthorizationException('This action is unauthorized.');
+            }
+
+            return $timesheet;
+        } catch (AuthorizationException $e) {
+            throw $e;
+        } catch (QueryException $e) {
+            report($e);
+            throw new \RuntimeException('Failed to retrieve timesheet. Please try again.', 0, $e);
+        } catch (\Exception $e) {
+            report($e);
+            throw new \RuntimeException('An unexpected error occurred. Please try again.', 0, $e);
         }
-
-        return $timesheet;
     }
 
     /**
@@ -51,34 +72,44 @@ class TimesheetService
      */
     public function findAll(User $authenticatedUser, array $filters = []): Collection
     {
-        if (!$this->policy->viewAny($authenticatedUser)) {
-            throw new AuthorizationException('This action is unauthorized.');
+        try {
+            if (!$this->policy->viewAny($authenticatedUser)) {
+                throw new AuthorizationException('This action is unauthorized.');
+            }
+
+            $query = Timesheet::with(['user', 'project']);
+
+            // Apply filters with AND operation
+            if (isset($filters['user_id'])) {
+                $query->where('user_id', $filters['user_id']);
+            }
+
+            if (isset($filters['project_id'])) {
+                $query->where('project_id', $filters['project_id']);
+            }
+
+            if (isset($filters['task_name'])) {
+                $query->where('task_name', 'like', '%' . $filters['task_name'] . '%');
+            }
+
+            if (isset($filters['date'])) {
+                $query->whereDate('date', $filters['date']);
+            }
+
+            if (isset($filters['hours'])) {
+                $query->where('hours', $filters['hours']);
+            }
+
+            return $query->get();
+        } catch (AuthorizationException $e) {
+            throw $e;
+        } catch (QueryException $e) {
+            report($e);
+            throw new \RuntimeException('Failed to retrieve timesheets. Please try again.', 0, $e);
+        } catch (\Exception $e) {
+            report($e);
+            throw new \RuntimeException('An unexpected error occurred. Please try again.', 0, $e);
         }
-
-        $query = Timesheet::with(['user', 'project']);
-
-        // Apply filters with AND operation
-        if (isset($filters['user_id'])) {
-            $query->where('user_id', $filters['user_id']);
-        }
-
-        if (isset($filters['project_id'])) {
-            $query->where('project_id', $filters['project_id']);
-        }
-
-        if (isset($filters['task_name'])) {
-            $query->where('task_name', 'like', '%' . $filters['task_name'] . '%');
-        }
-
-        if (isset($filters['date'])) {
-            $query->whereDate('date', $filters['date']);
-        }
-
-        if (isset($filters['hours'])) {
-            $query->where('hours', $filters['hours']);
-        }
-
-        return $query->get();
     }
 
     /**
@@ -86,19 +117,29 @@ class TimesheetService
      */
     public function update(User $authenticatedUser, int $id, TimesheetDTO $dto): ?Timesheet
     {
-        $timesheet = Timesheet::find($id);
+        try {
+            $timesheet = Timesheet::find($id);
 
-        if (!$timesheet) {
-            return null;
+            if (!$timesheet) {
+                return null;
+            }
+
+            if (!$this->policy->update($authenticatedUser, $timesheet)) {
+                throw new AuthorizationException('This action is unauthorized.');
+            }
+
+            $timesheet->update($dto->toArray());
+
+            return $timesheet->fresh()->load(['user', 'project']);
+        } catch (AuthorizationException $e) {
+            throw $e;
+        } catch (QueryException $e) {
+            report($e);
+            throw new \RuntimeException('Failed to update timesheet. Please try again.', 0, $e);
+        } catch (\Exception $e) {
+            report($e);
+            throw new \RuntimeException('An unexpected error occurred. Please try again.', 0, $e);
         }
-
-        if (!$this->policy->update($authenticatedUser, $timesheet)) {
-            throw new AuthorizationException('This action is unauthorized.');
-        }
-
-        $timesheet->update($dto->toArray());
-
-        return $timesheet->fresh()->load(['user', 'project']);
     }
 
     /**
@@ -106,16 +147,26 @@ class TimesheetService
      */
     public function delete(User $authenticatedUser, int $id): bool
     {
-        $timesheet = Timesheet::find($id);
+        try {
+            $timesheet = Timesheet::find($id);
 
-        if (!$timesheet) {
-            return false;
+            if (!$timesheet) {
+                return false;
+            }
+
+            if (!$this->policy->delete($authenticatedUser, $timesheet)) {
+                throw new AuthorizationException('This action is unauthorized.');
+            }
+
+            return $timesheet->delete();
+        } catch (AuthorizationException $e) {
+            throw $e;
+        } catch (QueryException $e) {
+            report($e);
+            throw new \RuntimeException('Failed to delete timesheet. Please try again.', 0, $e);
+        } catch (\Exception $e) {
+            report($e);
+            throw new \RuntimeException('An unexpected error occurred. Please try again.', 0, $e);
         }
-
-        if (!$this->policy->delete($authenticatedUser, $timesheet)) {
-            throw new AuthorizationException('This action is unauthorized.');
-        }
-
-        return $timesheet->delete();
     }
 }
