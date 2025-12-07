@@ -101,8 +101,13 @@ class TimesheetTest extends TestCase
      */
     public function test_authenticated_user_can_get_timesheet_by_id(): void
     {
-        ['token' => $token] = $this->createAuthenticatedUser();
-        $timesheet = Timesheet::factory()->create();
+        ['user' => $authenticatedUser, 'token' => $token] = $this->createAuthenticatedUser();
+        $project = Project::factory()->create();
+        $project->users()->attach($authenticatedUser->id);
+        $timesheet = Timesheet::factory()->create([
+            'user_id' => $authenticatedUser->id,
+            'project_id' => $project->id,
+        ]);
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->getJson("/api/timesheets/{$timesheet->id}");
@@ -204,8 +209,13 @@ class TimesheetTest extends TestCase
      */
     public function test_authenticated_user_can_update_timesheet(): void
     {
-        ['token' => $token] = $this->createAuthenticatedUser();
-        $timesheet = Timesheet::factory()->create(['hours' => 4.0]);
+        ['user' => $authenticatedUser, 'token' => $token] = $this->createAuthenticatedUser();
+        $project = Project::factory()->create();
+        $timesheet = Timesheet::factory()->create([
+            'user_id' => $authenticatedUser->id,
+            'project_id' => $project->id,
+            'hours' => 4.0,
+        ]);
 
         $updateData = [
             'id' => $timesheet->id,
@@ -237,8 +247,12 @@ class TimesheetTest extends TestCase
      */
     public function test_authenticated_user_can_delete_timesheet(): void
     {
-        ['token' => $token] = $this->createAuthenticatedUser();
-        $timesheet = Timesheet::factory()->create();
+        ['user' => $authenticatedUser, 'token' => $token] = $this->createAuthenticatedUser();
+        $project = Project::factory()->create();
+        $timesheet = Timesheet::factory()->create([
+            'user_id' => $authenticatedUser->id,
+            'project_id' => $project->id,
+        ]);
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/timesheets/delete', ['id' => $timesheet->id]);
