@@ -1,11 +1,13 @@
 <?php
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -23,8 +25,34 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         // Helper function to check if request is for API
         $isApiRequest = function (Request $request): bool {
-            return $request->is('api/*') || $request->expectsJson() || str_starts_with($request->path(), 'api');
+            return $request->is('api/*') 
+                || $request->expectsJson() 
+                || str_starts_with($request->path(), 'api')
+                || $request->header('Accept') === 'application/json';
         };
+
+        // Ensure JSON responses for API routes and disable debug output
+        $exceptions->shouldRenderJsonWhen(function (Request $request, \Throwable $e) use ($isApiRequest) {
+            return $isApiRequest($request);
+        });
+
+        // Handle AccessDeniedHttpException first (converted from AuthorizationException)
+        $exceptions->render(function (AccessDeniedHttpException $e, Request $request) use ($isApiRequest) {
+            if ($isApiRequest($request)) {
+                return response()->json([
+                    'message' => $e->getMessage() ?: 'This action is unauthorized.',
+                ], 403, [], JSON_UNESCAPED_SLASHES);
+            }
+        });
+
+        // Handle authorization exceptions for API routes
+        $exceptions->render(function (AuthorizationException $e, Request $request) use ($isApiRequest) {
+            if ($isApiRequest($request)) {
+                return response()->json([
+                    'message' => $e->getMessage() ?: 'This action is unauthorized.',
+                ], 403, [], JSON_UNESCAPED_SLASHES);
+            }
+        });
 
         // Handle authentication exceptions for API routes
         $exceptions->render(function (AuthenticationException $e, Request $request) use ($isApiRequest) {
