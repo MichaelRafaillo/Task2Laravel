@@ -75,15 +75,34 @@ class AuthController extends Controller
     }
 
     /**
-     * Logout user (revoke token).
+     * Logout user (revoke current token).
      */
     public function logout(Request $request): JsonResponse
     {
-        // Delete the current access token
-        $request->user()->tokens()->where('id', $request->user()->currentAccessToken()?->id)->delete();
+        $user = $request->user();
+        $token = $user->currentAccessToken();
+
+        if ($token) {
+            // Delete the current token
+            $user->tokens()->where('id', $token->id)->delete();
+        }
 
         return response()->json([
             'message' => 'Logged out successfully',
+        ]);
+    }
+
+    /**
+     * Logout user from all devices (revoke all tokens).
+     */
+    public function logoutAll(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        // Delete all tokens for the user
+        $user->tokens()->where('tokenable_id', $user->id)->delete();
+
+        return response()->json([
+            'message' => 'Logged out from all devices successfully',
         ]);
     }
 }
