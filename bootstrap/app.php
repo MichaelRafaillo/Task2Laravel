@@ -87,4 +87,22 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 404);
             }
         });
+
+        // Handle RuntimeException from services (database errors, etc.)
+        $exceptions->render(function (\RuntimeException $e, Request $request) use ($isApiRequest) {
+            if ($isApiRequest($request)) {
+                return response()->json([
+                    'message' => $e->getMessage() ?: 'An error occurred. Please try again.',
+                ], 500, [], JSON_UNESCAPED_SLASHES);
+            }
+        });
+
+        // Handle QueryException (database errors)
+        $exceptions->render(function (\Illuminate\Database\QueryException $e, Request $request) use ($isApiRequest) {
+            if ($isApiRequest($request)) {
+                return response()->json([
+                    'message' => 'A database error occurred. Please try again.',
+                ], 500, [], JSON_UNESCAPED_SLASHES);
+            }
+        });
     })->create();
