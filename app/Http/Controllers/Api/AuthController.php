@@ -11,6 +11,7 @@ use App\Http\Resources\UserResource;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -43,7 +44,7 @@ class AuthController extends Controller
             'message' => 'User registered successfully',
             'user' => new UserResource($user),
             'token' => $token,
-        ], 201);
+        ], Response::HTTP_CREATED);
     }
 
     /**

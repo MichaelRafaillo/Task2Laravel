@@ -12,6 +12,7 @@ use App\Http\Resources\ProjectResource;
 use App\Services\ProjectService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class ProjectController extends Controller
 {
@@ -31,7 +32,7 @@ class ProjectController extends Controller
         return response()->json([
             'message' => 'Project created successfully',
             'data' => new ProjectResource($project),
-        ], 201);
+        ], Response::HTTP_CREATED);
     }
 
     /**
@@ -44,7 +45,7 @@ class ProjectController extends Controller
         if (!$project) {
             return response()->json([
                 'message' => 'Project not found',
-            ], 404);
+            ], Response::HTTP_NOT_FOUND);
         }
 
         return response()->json([
@@ -77,7 +78,7 @@ class ProjectController extends Controller
         if (!$project) {
             return response()->json([
                 'message' => 'Project not found',
-            ], 404);
+            ], Response::HTTP_NOT_FOUND);
         }
 
         return response()->json([
@@ -100,7 +101,7 @@ class ProjectController extends Controller
         if (!$deleted) {
             return response()->json([
                 'message' => 'Project not found',
-            ], 404);
+            ], Response::HTTP_NOT_FOUND);
         }
 
         return response()->json([

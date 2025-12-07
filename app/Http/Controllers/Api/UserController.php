@@ -12,6 +12,7 @@ use App\Http\Resources\UserResource;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class UserController extends Controller
 {
@@ -31,7 +32,7 @@ class UserController extends Controller
         return response()->json([
             'message' => 'User created successfully',
             'data' => new UserResource($user),
-        ], 201);
+        ], Response::HTTP_CREATED);
     }
 
     /**
@@ -44,7 +45,7 @@ class UserController extends Controller
         if (!$user) {
             return response()->json([
                 'message' => 'User not found',
-            ], 404);
+            ], Response::HTTP_NOT_FOUND);
         }
 
         return response()->json([
@@ -77,7 +78,7 @@ class UserController extends Controller
         if (!$user) {
             return response()->json([
                 'message' => 'User not found',
-            ], 404);
+            ], Response::HTTP_NOT_FOUND);
         }
 
         return response()->json([
@@ -100,7 +101,7 @@ class UserController extends Controller
         if (!$deleted) {
             return response()->json([
                 'message' => 'User not found',
-            ], 404);
+            ], Response::HTTP_NOT_FOUND);
         }
 
         return response()->json([

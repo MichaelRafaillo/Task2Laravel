@@ -12,6 +12,7 @@ use App\Http\Resources\TimesheetResource;
 use App\Services\TimesheetService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class TimesheetController extends Controller
 {
@@ -31,7 +32,7 @@ class TimesheetController extends Controller
         return response()->json([
             'message' => 'Timesheet created successfully',
             'data' => new TimesheetResource($timesheet->load(['user', 'project'])),
-        ], 201);
+        ], Response::HTTP_CREATED);
     }
 
     /**
@@ -44,7 +45,7 @@ class TimesheetController extends Controller
         if (!$timesheet) {
             return response()->json([
                 'message' => 'Timesheet not found',
-            ], 404);
+            ], Response::HTTP_NOT_FOUND);
         }
 
         return response()->json([
@@ -77,7 +78,7 @@ class TimesheetController extends Controller
         if (!$timesheet) {
             return response()->json([
                 'message' => 'Timesheet not found',
-            ], 404);
+            ], Response::HTTP_NOT_FOUND);
         }
 
         return response()->json([
@@ -100,7 +101,7 @@ class TimesheetController extends Controller
         if (!$deleted) {
             return response()->json([
                 'message' => 'Timesheet not found',
-            ], 404);
+            ], Response::HTTP_NOT_FOUND);
         }
 
         return response()->json([
